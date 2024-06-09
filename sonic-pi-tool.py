@@ -20,6 +20,7 @@ from oscpy.client import OSCClient
 
 SERVER_OUTPUT = "~/.sonic-pi/log/server-output.log"
 SERVER_ERRORS = "~/.sonic-pi/log/server-errors.log"
+SPIDER_LOG = "~/.sonic-pi/log/spider.log"
 
 
 class Logger:
@@ -214,7 +215,9 @@ class Server:
                 self._cached_cmd_port = self._cmd_port
                 self.log("Using command port of {}".format(self._cached_cmd_port))
             else:
-                self._cached_cmd_port = Server.determine_command_port()
+                port, token = Server.determine_command_port()
+                self._cached_cmd_port = port
+                self.client_name = token
                 if self._cached_cmd_port is not None:
                     self.log("Found command port in log: {}".format(self._cached_cmd_port))
                 else:
@@ -311,14 +314,26 @@ class Server:
 
     @staticmethod
     def determine_command_port():
+        port = None
+        token = None
+
         try:
-            with open(os.path.expanduser(SERVER_OUTPUT)) as f:
+            with open(os.path.expanduser(SPIDER_LOG)) as f:
                 for line in f:
-                    m = re.search('^Listen port: *([0-9]+)', line)
-                    if m:
-                        return int(m.groups()[0])
+                    port_match = re.search(r'^Opening UDP Server to listen to GUI on port: *([0-9]+)', line)
+                    token_match = re.search(r'^Token: *(-?[0-9]+)', line)
+                    if port_match:
+                        port = int(port_match.groups()[0])
+                    if token_match:
+                        token = int(token_match.groups()[0])
+                    
+                    # If both values have been found, we can stop reading the file
+                    if port is not None and token is not None:
+                        break
         except FileNotFoundError:
             pass
+
+        return port, token
 
     @staticmethod
     def printc(*txt_style):
