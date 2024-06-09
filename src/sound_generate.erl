@@ -3,12 +3,12 @@
 
 -module(sound_generate).
 
--export([main/1,stop/0]).
+-export([playMelody/1,stop/0]).
 
 
 %% main function is used to play music using Erlang files
-%%'Arg' is file name, e.g. main(majorC0)
-main(Arg) -> 
+%%'Arg' is file name, e.g. main(user_case1)
+playMelody(Arg) ->
 	use_eval_bpm(Arg),
 	
     use_eval_play_pitch(Arg),
@@ -39,7 +39,16 @@ stop() ->
     %% Write the text
     N = "python sonic-pi-tool.py stop",
     file:write(Fh, N),
-	play().
+	{Status,Value} = file:open("out.rb",read),
+    if Status =:= ok ->
+            io:format("==== The Server Is Stopping Your Melody  ====~n"),
+            %%read file, read one line from file 
+            OneLine = io:get_line(Value,""),			
+            os:cmd (OneLine);
+	        
+        Status =/= ok ->
+            io:format("open file error:cannot open out.rb!")
+    end.
 
 %write synth (instrument)
 write_synth(Instrument) ->
@@ -108,7 +117,7 @@ make_chord(Name, Mode, Delay, Instrument, Note, ChordType, Beats, Effect, Envelo
            write("in_thread name: :" ++ Name),
 		   if 
 			   is_number(Delay) ->
-				   	write(", delay:" ++ float_to_list(Delay, [{decimals, 4}, compact]));
+				   	write(", delay:" ++ float_to_list(Delay, [{decimals, 3}, compact]));
 			   true ->
 				    ok
 		   end,
@@ -119,7 +128,7 @@ make_chord(Name, Mode, Delay, Instrument, Note, ChordType, Beats, Effect, Envelo
            write("live_loop :" ++ Name),
 		   if 
 			   is_number(Delay) ->
-				   	write(", delay:" ++ float_to_list(Delay, [{decimals, 4}, compact])); 
+				   	write(", delay:" ++ float_to_list(Delay, [{decimals, 3}, compact])); 
 			   true ->
 				    ok
 		   end,
@@ -140,7 +149,6 @@ make_chord(Name, Mode, Delay, Instrument, Note, ChordType, Beats, Effect, Envelo
        fun(Beat) ->
            transform(Beat)
        end, Beats),
-	io:format("Debug:  ~p ~n", [TransferredBeats]),
 	
 	%% write the notes in the chord
 	if 
@@ -149,7 +157,7 @@ make_chord(Name, Mode, Delay, Instrument, Note, ChordType, Beats, Effect, Envelo
 				length(TransferredBeats) == 4 ->
 		    		write_chord(4, Note, ChordType,TransferredBeats, 0);
 				true ->
-					io:format("The length of Beats list in this method should be 4 regards to your Chord type. Please rewrite the method."),
+					io:format("ERROR: The length of Beats list in this method should be 4 regards to your Chord type. Please rewrite the method."),
 			   		erlang:halt(0)
 			end;
 	    true ->
@@ -157,7 +165,7 @@ make_chord(Name, Mode, Delay, Instrument, Note, ChordType, Beats, Effect, Envelo
 				length(TransferredBeats) == 3->
 					write_chord(3, Note, ChordType,TransferredBeats, 0);
 				true ->
-					io:format("The length of Beats list in this method should be 3 regards to your Chord type. Please rewrite the method."),
+					io:format("ERROR: The length of Beats list in this method should be 3 regards to your Chord type. Please rewrite the method."),
 			   		erlang:halt(0)
 			end
 	end,
@@ -202,7 +210,7 @@ make_rubato_pattern(Name, Mode, First, Last, Delay, Sample, Pattern, Effect, Env
            ok;
 		%must be in no-loop mode
         true ->  
-           io:format("The 'mode' parameter in this method must be a positive integer. Please rewrite the method."),
+           io:format("ERROR: The 'mode' parameter in this method must be a positive integer. Please rewrite the method."),
 		   erlang:halt(0)
     end,
 	
@@ -210,12 +218,11 @@ make_rubato_pattern(Name, Mode, First, Last, Delay, Sample, Pattern, Effect, Env
 	NumberLast =transform(Last),
     PatternLength = length(Pattern),
 	
-	   
 	%write iteration times  
            write("in_thread name: :" ++ Name),
 		   if 
 			   is_number(Delay) ->
-				   	write(", delay:" ++ float_to_list(Delay, [{decimals, 4}, compact]));
+				   	write(", delay:" ++ float_to_list(Delay, [{decimals, 3}, compact]));
 			   true ->
 				    ok
 		   end,
@@ -283,7 +290,7 @@ sound(Soundname, Mode, Duration, Delay, Instrument, Sound, Effect, Envelope) ->
            write("in_thread name: :" ++ Soundname),
 		   if 
 			   is_number(Delay) ->
-				   	write(", delay:" ++ float_to_list(Delay, [{decimals, 4}, compact]));
+				   	write(", delay:" ++ float_to_list(Delay, [{decimals, 3}, compact]));
 			   true ->
 				    ok
 		   end,
@@ -294,7 +301,7 @@ sound(Soundname, Mode, Duration, Delay, Instrument, Sound, Effect, Envelope) ->
            write("live_loop :" ++ Soundname),
 		   if 
 			   is_number(Delay) ->
-				   	write(", delay:" ++ float_to_list(Delay, [{decimals, 4}, compact]));
+				   	write(", delay:" ++ float_to_list(Delay, [{decimals, 3}, compact]));
 			   true ->
 				    ok
 		   end,
@@ -373,13 +380,13 @@ loop(Count, BeatsList, Duration, Sound) when Duration > 0.0 ->
 					SumPreList = lists:sum(PreList),
 					trim_sound_list(Index, Sound, Duration - SumPreList)
 			end,
-			%%io:format("Index in 1: ~p ~n",[Index]),
+
 			loop(-1);
 		   true ->
 				if
 					Count == length(Sound) ->
 						trim_sound_list(Count, Sound, Duration),
-						%%io:format("Index in 2: ~p ~n",[Count]),
+
 						loop(-1);
 					true ->
 						loop(Count+1, BeatsList, Duration, Sound)
@@ -472,15 +479,14 @@ writeTail() ->
 play() ->
     {Status,Value} = file:open("out.rb",read),
     if Status =:= ok ->
-            io:format("==== open successed ====~n"),
+            io:format("==== The Server Is Playing Your Melody  ====~n"),
             %%read file, read one line from file 
             OneLine = io:get_line(Value,""),
-            io:format("read file_value~p ~n",[OneLine]),
-			
+			io:format("Please see the transferred Sonic Pi code by your music file ~n~p ~n",[OneLine]),
             os:cmd (OneLine);
 	        
         Status =/= ok ->
-            io:format("open file error!")
+            io:format("open file error:cannot open out.rb!")
     end.
 
 
@@ -502,7 +508,7 @@ makeTrack(Name, Mode, Duration, Delay, Sample, Pattern, Effect, Envelope) ->
            write("in_thread name: :" ++ Sample),
 		   if 
 			   is_number(Delay) ->
-				   	write(", delay:" ++ float_to_list(Delay, [{decimals, 4}, compact]));
+				   	write(", delay:" ++ float_to_list(Delay, [{decimals, 3}, compact]));
 			   true ->
 				    ok
 		   end,
@@ -514,7 +520,7 @@ makeTrack(Name, Mode, Duration, Delay, Sample, Pattern, Effect, Envelope) ->
            write("live_loop :" ++ Name),
 		   if 
 			   is_number(Delay) ->
-				   	write(", delay:" ++ float_to_list(Delay, [{decimals, 4}, compact]));
+				   	write(", delay:" ++ float_to_list(Delay, [{decimals, 3}, compact]));
 			   true ->
 				    ok
 		   end,
@@ -533,7 +539,6 @@ makeTrack(Name, Mode, Duration, Delay, Sample, Pattern, Effect, Envelope) ->
 	if 
 		is_integer(Mode) andalso Mode > 0 ->	
 			Len = length(Pattern),
-			%%io:format("Length: ~p Duration: ~p ~n",[Len], [Duration]),
 			
 			if 
 				Duration >= Len ->
@@ -624,7 +629,7 @@ makeChoose(ChooseName, Mode, Delay, Instrument, Note, Beats) ->
            write("in_thread name: :" ++ ChooseName),
 		   if 
 			   is_number(Delay) ->
-				   	write(", delay:" ++ float_to_list(Delay, [{decimals, 4}, compact]));
+				   	write(", delay:" ++ float_to_list(Delay, [{decimals, 3}, compact]));
 			   true ->
 				    ok
 		   end,
@@ -636,7 +641,7 @@ makeChoose(ChooseName, Mode, Delay, Instrument, Note, Beats) ->
            write("live_loop :" ++ ChooseName),
 		   if 
 			   is_number(Delay) ->
-				   	write(", delay:" ++ float_to_list(Delay, [{decimals, 4}, compact]));
+				   	write(", delay:" ++ float_to_list(Delay, [{decimals, 3}, compact]));
 			   true ->
 				    ok
 		   end,
@@ -690,5 +695,6 @@ makeBeats(B) ->
          
     end,
     New_B.
+
 
 

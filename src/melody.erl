@@ -63,10 +63,10 @@
 -type mode() :: loop | pos_integer().
 
 %%if the track needs to be delayed for some beats.
--type delay() :: no_delay | pos_integer().
+-type delay() :: no_delay | float().
 
 %%track duration for the single loop in no-loop mode
--type duration() :: no_duration | pos_integer().
+-type duration() :: no_duration | float().
 
 %% the  pitch_based track, it is a list of sounds, each sound has a set of notes, beats.
 %% its sound name, mode, instrument to play it, sound effect, envelope setting 
@@ -100,7 +100,7 @@
 
 
 
-%%rubato pattern track, duration must be a multiples of (last+first)/2, and itself must also be a natuaral number
+%%rubato pattern track.
 -callback rubato_pattern_track() -> [{name(), mode(), first(), last(), delay(), sample(), pattern(), effect(), envelope()}].
 
 
